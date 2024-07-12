@@ -94,8 +94,7 @@ export default function Component() {
             </div>
             <form
               className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
-              x-chunk="dashboard-03-chunk-1"
-            >
+              x-chunk="dashboard-03-chunk-1">
               <Label htmlFor="message" className="sr-only">
                 Message
               </Label>
