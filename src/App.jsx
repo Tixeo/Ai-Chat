@@ -86,7 +86,7 @@ export default function Component() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'mixtral-8x7b-32768',
+          model: 'gemma-7b-it',
           messages: newHistory,
           temperature: 0.7,
           stream: true
@@ -107,7 +107,7 @@ export default function Component() {
         messageBuffer += decoder.decode(value, { stream: true });
 
         const lines = messageBuffer.split('\n');
-        messageBuffer = lines.pop(); // keep the last incomplete line in buffer
+        messageBuffer = lines.pop();
 
         for (const line of lines) {
           if (line.trim()) {
@@ -182,39 +182,29 @@ export default function Component() {
                 )
               ))}
             </div>
-            <form
-        onSubmit={handleSubmit}
-        className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
-        x-chunk="dashboard-03-chunk-1"
-      >
-        <Label htmlFor="message" className="sr-only">
-          Message
-        </Label>
-        <Textarea
-          id="message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type your message here..."
-          className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
-        />
-        <div className="flex items-center p-3 pt-0">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MicIcon className="size-4" />
-                  <span className="sr-only">Use Microphone</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Use Microphone</TooltipContent>
-            </Tooltip>
-            <Button type="submit" size="sm" className="ml-auto gap-1.5">
-              Send Message
-              <CornerDownLeftIcon className="size-3.5" />
-            </Button>
-          </TooltipProvider>
-        </div>
-      </form>
+            <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring" x-chunk="dashboard-03-chunk-1">
+              <Label htmlFor="message" className="sr-only">
+                Message
+              </Label>
+              <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your message here..." className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0" />
+              <div className="flex items-center p-3 pt-0">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MicIcon className="size-4" />
+                        <span className="sr-only">Use Microphone</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Use Microphone</TooltipContent>
+                  </Tooltip>
+                  <Button type="submit" size="sm" className="ml-auto gap-1.5">
+                    Send Message
+                    <CornerDownLeftIcon className="size-3.5" />
+                  </Button>
+                </TooltipProvider>
+              </div>
+            </form>
 
           </div>
           <div className="relative hidden flex-col items-start gap-6 md:flex" x-chunk="dashboard-03-chunk-0">
