@@ -13,7 +13,6 @@ const App = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Ajouter le message de l'utilisateur à l'historique
       const newHistory = [...conversationHistory, { role: 'user', content: message }];
       setMessage('');  // Clear the input field
 
@@ -68,13 +67,11 @@ const App = () => {
                 });
               }
             } catch (error) {
-              // Ignore parsing errors for incomplete JSON
             }
           }
         }
       }
 
-      // Ajouter la réponse de l'assistant à l'historique
       setConversationHistory([...newHistory, { role: 'assistant', content: fullResponse }]);
     } catch (error) {
       console.error('Erreur lors de la soumission:', error.message);
