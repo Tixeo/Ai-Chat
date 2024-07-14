@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
@@ -21,7 +21,14 @@ export default function Component() {
   const [conversationHistory, setConversationHistory] = useState([
     { role: 'system', content: 'Vous êtes un assistant IA utile et amical.' }
   ]);
+  const chatContainerRef = useRef(null);
 
+  {/* bottom scroll */}
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [responses]);
 
   {/* cmd+enter */}
   useEffect(() => {
@@ -76,7 +83,7 @@ export default function Component() {
     const newHistory = [...conversationHistory, { role: 'user', content: message }];
     setConversationHistory(newHistory);
     setResponses([...responses, { role: 'user', content: message }]);
-    setMessage('');  // Clear the input field
+    setMessage('');
 
     try {
       const res = await fetch(API_URL, {
@@ -167,13 +174,13 @@ export default function Component() {
           </CommandDialog>
 
 
-        <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">{/* md:grid-cols-2 lg:grid-cols-3 */}
+        <main className="max-h-screen h-[57px] grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">{/* md:grid-cols-2 lg:grid-cols-3 */}
 
           <div className="relative flex h-full min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
             <Badge variant="outline" className="absolute left-3 top-3 z-50 bg-muted/50">
               Output
             </Badge>
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-3 overflow-auto pb-15 custom-scrollbar" ref={chatContainerRef}>
               {responses.map((res, index) => (
                 res.role === 'user' ? (
                   <MyChats key={index} prompt={res.content} />

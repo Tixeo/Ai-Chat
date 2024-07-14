@@ -71,7 +71,11 @@ module.exports = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      padding: {
+        '15': '15px',
+      }
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate", require('tailwind-scrollbar'),)],
+  
 }
