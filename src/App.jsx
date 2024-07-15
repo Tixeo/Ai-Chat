@@ -17,12 +17,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu"
 import { Toaster, toast } from 'sonner'
 import { rule } from 'postcss';
-
-
-
-
-const API_KEY = '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';
-const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+import ReactMarkdown from 'react-markdown';
+import Markdown from 'react-markdown';
+import axios from 'axios';
 
 
 export default function Component() {
@@ -44,9 +41,9 @@ export default function Component() {
   const openLoginDialog = () => setLoginIsOpen(true);
   const closeLoginDialog = () => setLoginIsOpen(false);
 
-
   {/* is login id ? */}
   useEffect(() => {
+    firstLetterEmail(localStorage.getItem('email'))
     const id = localStorage.getItem('id');
     if (id) {
       setUserId(id);
@@ -109,66 +106,71 @@ export default function Component() {
   {/* sendMessage */}
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message.trim()) return;
 
-    const newHistory = [...conversationHistory, { role: 'user', content: message }];
-    setConversationHistory(newHistory);
-    setResponses([...responses, { role: 'user', content: message }]);
+    if (message.trim() === '') {
+      return;
+    }
+    
+    const userMessage = { role: 'user', content: message };
+    const newResponses = [...responses, userMessage];
+    setResponses(newResponses);
     setMessage('');
 
-    try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gemma-7b-it',
-          messages: newHistory,
-          temperature: 0.7,
-          stream: true
-        })
-      });
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let aiMessage = '';
-      let messageBuffer = '';
-
-      setResponses((prev) => [...prev, { role: 'ai', content: '' }]);
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        messageBuffer += decoder.decode(value, { stream: true });
-
-        const lines = messageBuffer.split('\n');
-        messageBuffer = lines.pop();
-
-        for (const line of lines) {
-          if (line.trim()) {
-            const data = JSON.parse(line.replace(/^data: /, ''));
-            const delta = data.choices[0].delta.content || '';
-            aiMessage += delta;
-
-            setResponses((prev) => {
-              const updatedResponses = [...prev];
-              updatedResponses[updatedResponses.length - 1].content = aiMessage;
-              return updatedResponses;
-            });
+      try {
+        const response = await fetch('http://localhost:3001/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ messages: newResponses }),
+        });
+  
+        if (response.ok) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let result = '';
+  
+          setResponses((prevResponses) => [
+            ...prevResponses,
+            { role: 'assistant', content: '' },
+          ]);
+  
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+  
+            // Traitement des données en flux
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+              if (line.trim() !== '') {
+                const json = line.replace(/^data: /, '');
+                try {
+                  const parsed = JSON.parse(json);
+                  const content = parsed.choices[0].delta.content;
+                  if (content) {
+                    result += content;
+                    setResponses((prevResponses) => {
+                      const lastResponseIndex = prevResponses.length - 1;
+                      const updatedResponses = [...prevResponses];
+                      updatedResponses[lastResponseIndex] = {
+                        ...updatedResponses[lastResponseIndex],
+                        content: result,
+                      };
+                      return updatedResponses;
+                    });
+                  }
+                } catch (e) {
+                  console.error('Parsing error:', e);
+                }
+              }
+            }
           }
         }
+      } catch (error) {
+        console.error('Error:', error);
       }
-
-    } catch (error) {
-      console.error('Error:', error);
-    }
   };
-
-
-
 
   {/* send email */}
   const handleEmailSender = async () => {
@@ -345,8 +347,6 @@ export default function Component() {
                 cancelButton: 'bg-primary text-primary-foreground'
               },
             }} />
-
-
         <main className="max-h-screen h-[57px] grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">{/* md:grid-cols-2 lg:grid-cols-3 */}
 
           <div className="relative flex h-full min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
@@ -362,7 +362,7 @@ export default function Component() {
                 )
               ))}
             </div>
-            <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring" x-chunk="dashboard-03-chunk-1">
+            <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring">
               <Label htmlFor="message" className="sr-only">
                 Message
               </Label>
@@ -385,7 +385,6 @@ export default function Component() {
                 </TooltipProvider>
               </div>
             </form>
-
           </div>
           <div className="relative hidden flex-col items-start gap-6 md:flex" x-chunk="dashboard-03-chunk-0">
             <form className="grid w-full items-start gap-6">
@@ -491,7 +490,7 @@ function MyChats({ prompt }) {
   return (
     <div className="w-full min-h-0 flex justify-end text-sm">
       <div className="max-w-[500px] relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring p-2 inline-block">
-        <p className='break-words'>{prompt}</p>
+        <ReactMarkdown className='break-words'>{prompt}</ReactMarkdown>
       </div>
     </div>
   );
@@ -506,7 +505,7 @@ function AiChats({ prompt, model }) {
             <CodeModel/>
             <p className='text-base break-words'>{model}</p>
           </div>
-          <p className='text-sm break-words'>{prompt}</p>
+          <ReactMarkdown className=' text-sm break-words'>{prompt}</ReactMarkdown>
         </div>
       </div>
     </div>
