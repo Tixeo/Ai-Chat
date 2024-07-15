@@ -9,6 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card"
+import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
+import { AlignCenter, AlignJustify } from 'lucide-react';
+
+
 
 const API_KEY = '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';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -22,6 +28,10 @@ export default function Component() {
     { role: 'system', content: 'Vous êtes un assistant IA utile et amical.' }
   ]);
   const chatContainerRef = useRef(null);
+  const [email, setEmail] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [checkCodeMessage, setCheckCodeMessage] = useState('');
+  const [otpValue, setOtpValue] = useState("")
 
   {/* bottom scroll */}
   useEffect(() => {
@@ -51,31 +61,26 @@ export default function Component() {
   {/* cmd+b */}
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-        event.preventDefault(); // Empêcher le retour à la ligne
-        const form = document.querySelector('form');
-        if (form) {
-          const message = form.elements.message.value;
-              if (message) {
-      console.log(message);
-    }
-          form.elements.message.value = ''; // Vider le textarea
-        }
+      if (event.metaKey && event.key === 'b') {
+        event.preventDefault();
+        setOpen(true);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
   
-
+  {/* openHistory */}
   const handleMenuClick = () => {
     setOpen(true);
   };
 
+  {/* sendMessage */}
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -137,6 +142,60 @@ export default function Component() {
   };
 
 
+
+
+  {/* send email */}
+  const handleEmailSender = async () => {
+    if (!email) {
+      setEmailMessage(`There is no email`);
+    } else if (email.includes('@') && email.includes('.')) {
+      setEmailMessage(`Code send at: ${email}, check your spam inbox!`);
+      try {
+        const response = await fetch('http://localhost:3001/api/email-sender', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        if (response.ok) {
+          console.log('Données envoyées avec succès');
+        } else {
+          console.error('Erreur lors de l\'envoi des données');
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+      }
+    } else {
+      setEmailMessage(`Not valid email: ${email}`);
+    }
+  };
+  const handleEmailInputChange = (event) => {
+    setEmail(event.target.value);
+  };
+
+  {/* check email */}
+  const handleEmailChecker = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/email-checker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, otpValue })
+      });
+      
+      if (response.status === 200) {
+        setCheckCodeMessage(`You're connected!`);
+      } else {
+        setCheckCodeMessage(`Not correct`);
+      }
+    } catch (error) {
+      setCheckCodeMessage(`Error`);
+    }
+  };
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <div className="grid h-screen w-full">
@@ -146,19 +205,59 @@ export default function Component() {
               <MenuIcon className="size-4" />
             </Button>
             <h1 className="text-xl font-semibold p-3">Ai Chat By Tixeo</h1>
-            <Button variant="outline" size="sm" className="ml-auto gap-1.5 text-sm">
-              Login
-            </Button>
-            <Button size="sm" className="gap-1.5 text-sm">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="ml-auto">Login</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Login</DialogTitle>
+                  <DialogDescription>
+                    Login to the plateforme to save your chats!
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center space-x-2">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="email" className="sr-only">Email</Label>
+                    <Input id="email" value={email} type="email" placeholder="name@example.com" onChange={handleEmailInputChange}/>
+                  </div>
+                </div>
+                {(emailMessage == 'There is no email' || emailMessage.startsWith('Not valid email:') || emailMessage == '') && <Button type="button" onClick={handleEmailSender}>Verify</Button>}
+                {emailMessage && <DialogDescription>{emailMessage}</DialogDescription>}
+                {emailMessage.startsWith('Code send at:') && <div className="flex items-center justify-center flex-col gap-5">
+                  <InputOTP maxLength={6} onChange={(otpValue) => setOtpValue(otpValue)} value={otpValue}>
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                    </InputOTPGroup>
+                    <InputOTPSeparator />
+                    <InputOTPGroup>
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                  {checkCodeMessage && <DialogDescription>{checkCodeMessage}</DialogDescription>}
+                  <Button className="w-full" onClick={handleEmailChecker}>Continue</Button>
+                </div>}
+                {/*<DialogFooter className="sm:justify-start">
+                  <DialogClose asChild>
+                    <Button type="button" variant="secondary">Close</Button>
+                  </DialogClose>
+                </DialogFooter>*/}
+              </DialogContent>
+            </Dialog>
+            {/*<Button size="sm" className="gap-1.5 text-sm">
               Register
-            </Button>
+            </Button>*/}
           </header>
 
 
           {/* CommandBar */}
           <CommandDialog open={open} onOpenChange={setOpen}>
             <CommandInput placeholder="Type a search..." />
-            <CommandList>
+            <CommandList className="custom-scrollbar">
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandGroup heading="- Hier -">
                 <CommandItem>Node JS Server to index.html</CommandItem>
@@ -266,9 +365,13 @@ export default function Component() {
                 </div>
                 <div className="grid gap-3">
                   <Label htmlFor="temperature">Temperature</Label>
-                  <Input id="temperature" type="number" placeholder="0.4" />
+                  <Input id="temperature" type="number" placeholder="0.7" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-3">
+                  <Label htmlFor="top-p">Top P</Label>
+                  <Input id="top-p" type="number" placeholder="0.7" />
+                </div>
+                {/*<div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-3">
                     <Label htmlFor="top-p">Top P</Label>
                     <Input id="top-p" type="number" placeholder="0.7" />
@@ -277,7 +380,7 @@ export default function Component() {
                     <Label htmlFor="top-k">Top K</Label>
                     <Input id="top-k" type="number" placeholder="0.0" />
                   </div>
-                </div>
+                </div>*/}
               </fieldset>
               <fieldset className="grid gap-6 rounded-lg border p-4">
                 <legend className="-ml-1 px-1 text-sm font-medium">Messages</legend>
@@ -390,5 +493,11 @@ function MenuIcon(props) {
   return (
 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 3C1.22386 3 1 3.22386 1 3.5C1 3.77614 1.22386 4 1.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM1 7.5C1 7.22386 1.22386 7 1.5 7H13.5C13.7761 7 14 7.22386 14 7.5C14 7.77614 13.7761 8 13.5 8H1.5C1.22386 8 1 7.77614 1 7.5ZM1 11.5C1 11.2239 1.22386 11 1.5 11H13.5C13.7761 11 14 11.2239 14 11.5C14 11.7761 13.7761 12 13.5 12H1.5C1.22386 12 1 11.7761 1 11.5Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
 
+  )
+}
+
+function CopyIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy h-4 w-4"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
   )
 }
