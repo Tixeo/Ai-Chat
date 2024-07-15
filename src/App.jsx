@@ -13,6 +13,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
 import { AlignCenter, AlignJustify } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu"
+import { Toaster, toast } from 'sonner'
+import { rule } from 'postcss';
+
 
 
 
@@ -31,7 +36,22 @@ export default function Component() {
   const [email, setEmail] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
   const [checkCodeMessage, setCheckCodeMessage] = useState('');
-  const [otpValue, setOtpValue] = useState("")
+  const [otpValue, setOtpValue] = useState('')
+  const [userId, setUserId] = useState(null);
+  const [loginIsOpen, setLoginIsOpen] = useState(false);
+  const [firstLetter, setFirstLetter] = useState(null);
+
+  const openLoginDialog = () => setLoginIsOpen(true);
+  const closeLoginDialog = () => setLoginIsOpen(false);
+
+
+  {/* is login id ? */}
+  useEffect(() => {
+    const id = localStorage.getItem('id');
+    if (id) {
+      setUserId(id);
+    }
+  }, []);
 
   {/* bottom scroll */}
   useEffect(() => {
@@ -73,6 +93,12 @@ export default function Component() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  function firstLetterEmail(email) {
+    setFirstLetter(email.charAt(0).toUpperCase())
+    return firstLetter;
+  }
+
 
   
   {/* openHistory */}
@@ -148,8 +174,10 @@ export default function Component() {
   const handleEmailSender = async () => {
     if (!email) {
       setEmailMessage(`There is no email`);
+      toast.error(`There is no email`)
     } else if (email.includes('@') && email.includes('.')) {
       setEmailMessage(`Code send at: ${email}, check your spam inbox!`);
+      toast.success(`Code send at: ${email}, check your spam inbox!`)
       try {
         const response = await fetch('http://localhost:3001/api/email-sender', {
           method: 'POST',
@@ -160,7 +188,7 @@ export default function Component() {
         });
         
         if (response.ok) {
-          console.log('Données envoyées avec succès');
+          console.log('Data send');
         } else {
           console.error('Erreur lors de l\'envoi des données');
         }
@@ -169,6 +197,7 @@ export default function Component() {
       }
     } else {
       setEmailMessage(`Not valid email: ${email}`);
+      toast.error(`Not valid email: ${email}`)
     }
   };
   const handleEmailInputChange = (event) => {
@@ -187,13 +216,33 @@ export default function Component() {
       });
       
       if (response.status === 200) {
+        const data = await response.json();
+        const id = data.id;
+        localStorage.setItem('id', id)
+        localStorage.setItem('email', email)
+        setUserId(id);
         setCheckCodeMessage(`You're connected!`);
+        toast.success(`You're connected!`)
+        firstLetterEmail(email)
+        closeLoginDialog();
+        setCheckCodeMessage('')
+        setEmailMessage('')
       } else {
         setCheckCodeMessage(`Not correct`);
+        toast.error(`The code is not correct`)
       }
     } catch (error) {
       setCheckCodeMessage(`Error`);
+      toast.error(`Error`)
     }
+  };
+  {/* logout */}
+  const handleLogout = () => {
+    localStorage.removeItem('id');
+    setUserId(null);
+    toast.success('You have been succefuly logout')
+    setCheckCodeMessage('')
+    setEmailMessage('')
   };
 
   return (
@@ -205,7 +254,21 @@ export default function Component() {
               <MenuIcon className="size-4" />
             </Button>
             <h1 className="text-xl font-semibold p-3">Ai Chat By Tixeo</h1>
-            <Dialog>
+            {userId ? (
+              <DropdownMenu>
+              <DropdownMenuTrigger className="ml-auto">
+                <Avatar>
+                  <AvatarFallback>{firstLetter}</AvatarFallback>
+                </Avatar>   
+            </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>         
+            ) : (
+            <Dialog open={loginIsOpen} onOpenChange={setLoginIsOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="ml-auto">Login</Button>
               </DialogTrigger>
@@ -219,11 +282,11 @@ export default function Component() {
                 <div className="flex items-center space-x-2">
                   <div className="grid flex-1 gap-2">
                     <Label htmlFor="email" className="sr-only">Email</Label>
-                    <Input id="email" value={email} type="email" placeholder="name@example.com" onChange={handleEmailInputChange}/>
+                    <Input id="email" value={email} type="email" placeholder="name@example.com" onChange={handleEmailInputChange} disabled={emailMessage.startsWith('Code send at:')}/>
                   </div>
                 </div>
                 {(emailMessage == 'There is no email' || emailMessage.startsWith('Not valid email:') || emailMessage == '') && <Button type="button" onClick={handleEmailSender}>Verify</Button>}
-                {emailMessage && <DialogDescription>{emailMessage}</DialogDescription>}
+                {/*{emailMessage && <DialogDescription>{emailMessage}</DialogDescription>}*/}
                 {emailMessage.startsWith('Code send at:') && <div className="flex items-center justify-center flex-col gap-5">
                   <InputOTP maxLength={6} onChange={(otpValue) => setOtpValue(otpValue)} value={otpValue}>
                     <InputOTPGroup>
@@ -238,7 +301,7 @@ export default function Component() {
                       <InputOTPSlot index={5} />
                     </InputOTPGroup>
                   </InputOTP>
-                  {checkCodeMessage && <DialogDescription>{checkCodeMessage}</DialogDescription>}
+                  {/*{checkCodeMessage && <DialogDescription>{checkCodeMessage}</DialogDescription>}*/}
                   <Button className="w-full" onClick={handleEmailChecker}>Continue</Button>
                 </div>}
                 {/*<DialogFooter className="sm:justify-start">
@@ -247,7 +310,7 @@ export default function Component() {
                   </DialogClose>
                 </DialogFooter>*/}
               </DialogContent>
-            </Dialog>
+            </Dialog>)}
             {/*<Button size="sm" className="gap-1.5 text-sm">
               Register
             </Button>*/}
@@ -271,6 +334,17 @@ export default function Component() {
               </CommandGroup>
             </CommandList>
           </CommandDialog>
+
+          <Toaster
+            toastOptions={{
+              classNames: {
+                toast: 'group toast bg-background text-foreground border shadow-lg',
+                title: 'text-white-400',
+                description: 'text-muted-foreground',
+                actionButton: 'bg-primary text-primary-foreground',
+                cancelButton: 'bg-primary text-primary-foreground'
+              },
+            }} />
 
 
         <main className="max-h-screen h-[57px] grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">{/* md:grid-cols-2 lg:grid-cols-3 */}
