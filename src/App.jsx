@@ -18,8 +18,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Toaster, toast } from 'sonner'
 import { rule } from 'postcss';
 import ReactMarkdown from 'react-markdown';
-import Markdown from 'react-markdown';
-import axios from 'axios';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+
 
 
 export default function Component() {
@@ -252,9 +252,20 @@ export default function Component() {
       <div className="grid h-screen w-full">
         <div className="flex flex-col">
           <header className="sticky top-0 z-10 flex h-[57px] items-center gap-1 border-b bg-background px-4">
-            <Button variant="outline" size="sm" className="gap-1.5 text-sm" onClick={handleMenuClick}>
-              <MenuIcon className="size-4" />
-            </Button>
+            <Sheet key='left'>
+              <SheetTrigger>
+                {/*onClick={handleMenuClick}*/}
+                <Button variant="outline" size="sm" className="gap-1.5 text-sm" >
+                  <MenuIcon className="size-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side='left'>
+                <SheetHeader>
+                  <SheetTitle>History</SheetTitle>
+                  <SheetDescription>It doesn't work for maintenance</SheetDescription>
+                </SheetHeader>
+              </SheetContent>
+            </Sheet>
             <h1 className="text-xl font-semibold p-3">Ai Chat By Tixeo</h1>
             {userId ? (
               <DropdownMenu>
